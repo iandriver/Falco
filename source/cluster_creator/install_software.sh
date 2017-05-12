@@ -60,7 +60,7 @@ sudo make install
 popd > /dev/null
 
 # Install picard_tools
-unzip picard-tools*.zip
+#unzip picard-tools*.zip
 pic_jar=$( find . -name picard.jar )
 pic_path=${pic_jar%picard.jar}
 ln -s $pic_path picard-tools
