@@ -16,8 +16,7 @@ optional_instance_config = {"vpc_subnet": "Ec2SubnetId",
 
 
 def check_configuration(config):
-    if not utility.check_config(config, "EMR", ["release_label", "software_installer_location",
-                                                "genome_folder_location"]):
+    if not utility.check_config(config, "EMR", ["release_label", "software_installer_location", "genome_folder_location", "virtualenv_location"]):
         return False
 
     if not utility.check_upload_config(config["EMR"], "upload_bootstrap_scripts", "bootstrap_scripts",
@@ -86,7 +85,7 @@ def build_command(config):
             "Name": "Setup Hadoop Debugging",
             "ActionOnFailure": "TERMINATE_CLUSTER",
             "HadoopJarStep": {
-                "Jar": "/var/lib/aws/emr/step-runner/hadoop-jars/command-runner.jar",
+                "Jar": "command-runner.jar",
                 "MainClass": "state-pusher-script"
             }
         }
@@ -99,7 +98,7 @@ def build_command(config):
 
             bootstrap_action_args = []
             if bootstrap_script == "install_software.sh":
-                bootstrap_action_args = [config["EMR"]["software_installer_location"]]
+                bootstrap_action_args = [config["EMR"]["software_installer_location"],config["EMR"]["virtualenv_location"]]
             elif bootstrap_script == "copy_reference.sh":
                 bootstrap_action_args = [config["EMR"]["genome_folder_location"]]
 
