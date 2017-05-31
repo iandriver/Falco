@@ -38,8 +38,7 @@ def check_configuration(cfg):
     # user files
     # Note that the "files" item is optional
     if not utility.check_config(cfg, "user_script_config", []) and \
-            not utility.check_upload_config(cfg["user_script_config"], 'upload_user_files', 'script',
-                                            'user_files_local_location', 'user_files_s3_location', 'supporting_files'):
+            not utility.check_upload_config(cfg["user_script_config"], 'upload_user_files', 'script','user_files_local_location', 'user_files_s3_location', 'supporting_files', 'min_trim'):
         return False
 
     return True
@@ -178,11 +177,12 @@ def build_command(cfg):
     command_args.append("-mapper")
     command_args.append(
         '{} -i {} -o {} -r {} -u {}{}'.format(cfg["job_config"]["script"].strip().split("/")[-1],
-                                              cfg["script_arguments"]["input_location"],
-                                              cfg["script_arguments"]["output_location"],
-                                              cfg["script_arguments"]["region"],
-                                              cfg["user_script_config"]["script"],
-                                              cfg["step"]["additional_files_option"]))
+            cfg["script_arguments"]["input_location"],
+            cfg["script_arguments"]["output_location"],
+            cfg["script_arguments"]["region"],
+            cfg["user_script_config"]["script"],
+            cfg["user_script_config"]["min_trim"],
+            cfg["step"]["additional_files_option"]))
 
     command_args.append("-input")
     command_args.append(cfg["script_arguments"]["manifest"])

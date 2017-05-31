@@ -37,6 +37,8 @@ wget -O samtools-1.4.1.tar.bz2 https://github.com/samtools/samtools/releases/dow
 # prinseq
 wget -O prinseq-lite-0.20.4.tar.gz https://sourceforge.net/projects/prinseq/files/standalone/prinseq-lite-0.20.4.tar.gz/download
 
+wget http://ccb.jhu.edu/software/stringtie/dl/stringtie-1.3.3b.Linux_x86_64.tar.gz
+
 # trim galore
 wget http://www.bioinformatics.babraham.ac.uk/projects/trim_galore/trim_galore_v0.4.1.zip
 

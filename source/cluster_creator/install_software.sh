@@ -7,16 +7,27 @@ set -e
 set -o pipefail
 
 sudo yum update -y
+aws s3 cp $2 /home/hadoop/
+unzip /home/hadoop/env.zip
+
+source /home/hadoop/env/bin/activate
 
 mkdir /mnt/app
 pushd /mnt/app > /dev/null
 
 aws s3 cp $1 . --recursive
 
+
 # Install STAR and its' dependencies
 sudo yum install make -y
 sudo yum install gcc-c++ -y
 sudo yum install glibc-static -y
+sudo yum install zlib-devel -y
+sudo yum install ncurses-devel ncurses -y
+sudo yum install bzip2-devel -y
+sudo yum install xz-devel -y
+sudo yum install libpng-devel -y
+sudo yum install atlas-sse3-devel lapack-devel -y
 
 # STAR
 tar -xzf STAR*.tar.gz
@@ -24,7 +35,6 @@ star_path=$( find . -name "STAR"|grep -E "/Linux_x86_64/" )
 # symbolic link to the STAR directory (rather than to the executable itself)
 ln -s ${star_path%STAR} STAR
 
-sudo yum install python-devel numpy python-matplotlib -y
 
 # Install subread (featureCount)
 tar -xzf subread*.tar.gz
@@ -37,10 +47,13 @@ unzip hisat2*.zip
 hisat_dir=$( find . -maxdepth 1 -type d -name "hisat2*")
 ln -s $hisat_dir hisat
 
-# Install HTSeq
-sudo yum install python27-devel python27-numpy python27-matplotlib -y
-sudo pip install pysam
-sudo pip install htseq
+#install Stringtie
+gunzip stringtie*.tar.gz
+tar -xf stringtie*.tar
+rm -r stringtie*.tar
+stringtie_dir=$( find . -maxdepth 1 -type d -name "stringtie*")
+ln -s $stringtie_dir stringtie
+
 
 # Install samtools
 tar -xjf samtools*.tar.bz2
@@ -90,15 +103,11 @@ mkdir /mnt/output
 
 # Install python dependencies for framework
 sudo yum install python27-Cython -y
-sudo pip install pandas
-sudo pip install boto3
-sudo python3 -m pip install boto3
+
 
 # Install java8
 sudo yum install java-1.8.0-openjdk.x86_64 -y
 
-# install cutadapt
-sudo pip install cutadapt
 
 # install htop
 sudo yum install htop -y

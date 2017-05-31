@@ -11,6 +11,11 @@ cluster_id = ""
 spark_extra_config = [("spark.memory.fraction", "0.9"),
                       ("spark.python.profile", "true"),
                       ("spark.python.worker.reuse", "false"),
+                      ("spark.pyspark.virtualenv.enabled", "true"),
+                      ("spark.pyspark.virtualenv.type", "native"),
+                      ("spark.pyspark.virtualenv.requirements", "/home/hadoop/requirements.txt"),
+                      ("spark.pyspark.virtualenv.path", "/home/hadoop/env"),
+                      ("spark.pyspark.python","/home/hadoop/env/bin/python2.7")
                       ("spark.yarn.executor.memoryOverhead", "4096"),
                       ("spark.driver.maxResultSize", "3g"),
                       ("spark.executor.extraJavaOptions",
@@ -102,6 +107,8 @@ def build_command(config):
     command_args.append(config["script_arguments"]["strand_specificity"].upper())
 
     command_args.append("-at={}".format(config["script_arguments"]["aligner_tool"]))
+    if "sam_sort" in config["script_arguments"] and config["script_arguments"]["sam_sort"].lower() == "true":
+        command_args.append("--run_samsort")
     command_args.append("-ct={}".format(config["script_arguments"]["counter_tool"]))
 
     if "run_picard" in config["script_arguments"] and config["script_arguments"]["run_picard"].lower() == "true":

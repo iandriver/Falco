@@ -178,6 +178,8 @@ def align_reads_hisat(sample_name, file_names, alignment_output_dir):
 
     return sam_file_name_output, aligner_qc_output
 
+
+
 #################################
 #  Counter
 #################################
@@ -269,6 +271,62 @@ def count_reads_htseq(sample_name, aligned_output_filepath, paired_reads, counte
 
     return counter_output, counter_qc_output
 
+def samtools_sort(sample_name, aligned_output_filepath, counter_output_dir):
+    aligned_file_type = aligned_output_filepath.rsplit(".")[-1]
+
+    print("Running samtools sort")
+
+    samtools_args = "{app_folder}/samtools/samtools view -u {aligned_file} " \
+                "| {app_folder}/samtools/samtools sort -o {output_file_path}".\
+        format(app_folder= APPLICATION_FOLDER,
+                aligned_file=aligned_output_filepath,
+                output_file_path=alignment_output_dir+ "/"+sample_name+".sorted.bam")
+    print("Command: " + samtools_args)
+    samtool_process = Popen(shlex.split(samtools_args), stdout=PIPE, stderr=PIPE)
+    samtool_out, samtool_error = samtool_process.communicate()
+
+    if samtool_process.returncode != 0:
+        raise ValueError("Samtools failed to complete! (Non-zero return code)\nsamtools stdout: {} \nsamtools stderr: {}".
+                         format(samtools_out, samtools_error))
+
+    if "[Errno" in samtools_error.strip():
+        raise ValueError("Samtools failed to complete! (Error)\nCounter stdout: {} \nCounter stderr: {}".
+                         format(samtool_out, samtool_error))
+    sorted_file_name = sample_name+".sorted.bam"
+
+    return sorted_file_name
+
+def count_reads_stringtie(sample_name, aligned_output_filepath, counter_output_dir):
+    aligned_file_type = aligned_output_filepath.rsplit(".")[-1]
+
+    print("Running Stringtie")
+    stringtie_args = "stringtie -eB "\
+                "{counter_extra_args} {samsorted_aligned_file} " \
+                "-o {output_file_path} -p 4 -G "
+                "{genome_ref_folder}/{annotation_file} -A {gene_abund_file}".\
+        format(aligned_file_type=aligned_file_type,
+               counter_extra_args=parser_result.counter_extra_args,
+               samsorted_aligned_file=aligned_output_filepath,
+               genome_ref_folder=GENOME_REFERENCES_FOLDER + "/genome_ref",
+               annotation_file=parser_result.annotation_file,
+               output_file_path=counter_output_dir+ "/"+sample_name+".gff",
+               gene_abund_file=counter_output_dir+ "/"+sample_name+"_gene_abund.tab")
+    print("Command: " + stringtie_args)
+    stringtie_process = Popen(shlex.split(stringtie_args), stdout=PIPE, stderr=PIPE)
+    stringtie_out, stringtie_error = stringtie_process.communicate()
+
+    if stringtie_process.returncode != 0:
+        raise ValueError("Stringtie failed to complete! (Non-zero return code)\nCounter stdout: {} \nCounter stderr: {}".
+                         format(stringtie_out, stringtie_error))
+
+    if "[Errno" in stringtie_error.strip():
+        raise ValueError("Stringtie failed to complete! (Error)\nCounter stdout: {} \nCounter stderr: {}".
+                         format(stringtie_out, stringtie_error))
+
+    stringtie_gff_name = sample_name+".gff"
+    stringtie_abund_name = sample_name+"_gene_abund.tab"
+
+    return stringtie_gff_name, stringtie_abund_name
 
 #################################
 #  Picard tools
@@ -277,7 +335,7 @@ def count_reads_htseq(sample_name, aligned_output_filepath, paired_reads, counte
 
 def run_picard(sample_name, aligned_output_filepath, picard_output_dir):
     print("Getting alignment metrics...")
-    picard_args = "java8 -jar {}/picard-tools/picard.jar CollectRnaSeqMetrics I={} O={}/output.RNA_Metrics " \
+    picard_args = "java8 -jar {}/picard.jar CollectRnaSeqMetrics I={} O={}/output.RNA_Metrics " \
                   "REF_FLAT={}/refFlat.txt STRAND={} {}". \
         format(APPLICATION_FOLDER, aligned_output_filepath, picard_output_dir, GENOME_REFERENCES_FOLDER + "/genome_ref",
                parser_result.strand_specificity, parser_result.picard_extra_args)
@@ -384,15 +442,12 @@ def alignment_count_step(keyval):
     aligned_output_filepath = "{}/{}".format(alignment_output_dir.rstrip("/"), aligned_sam_output)
 
     if parser_result.counter.lower() == "featurecount" or parser_result.counter.lower() == "featurecounts":
-        counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,
-                                                                     alignment_output_dir)
+        counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
     elif parser_result.counter.lower() == "htseq":
-        counter_output, counter_qc_output = count_reads_htseq(sample_name, aligned_output_filepath, paired_reads,
-                                                                  alignment_output_dir)
+        counter_output, counter_qc_output = count_reads_htseq(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
     else:
         print("Counter specified is not yet supported. Defaulting to featureCount")
-        counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,
-                                                                     alignment_output_dir)
+        counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
 
     counter_output.extend(aligner_qc_output)
     counter_output.extend(counter_qc_output)
@@ -417,12 +472,13 @@ if __name__ == "__main__":
                         help="Strand specificity: NONE|FIRST_READ_TRANSCRIPTION_STRAND|SECOND_READ_TRANSCRIPTION_STRAND"
                         , default="NONE")
     parser.add_argument('--run_picard', '-rp', action="store_true", dest="run_picard", help="Run picard")
+    parser.add_argument('--run_samsort', '-rs', action="store_true", dest="run_samsort", help="Run samsort")
     parser.add_argument('--aligner_tools', '-at', action="store", dest="aligner", nargs='?',
                         help="Aligner to be used (STAR|HISAT2)", default="STAR")
     parser.add_argument('--aligner_extra_args', '-s', action="store", dest="aligner_extra_args", nargs='?',
                         help="Extra argument to be passed to alignment tool", default="")
     parser.add_argument('--counter_tools', '-ct', action="store", dest="counter", nargs='?',
-                        help="Counter to be used (featureCount|StringTie)", default="featureCount")
+                        help="Counter to be used (featureCount|StringTie)", default="StringTie")
     parser.add_argument('--counter_extra_args', '-c', action="store", dest="counter_extra_args", nargs='?',
                         help="Extra argument to be passed to quantification tool", default="")
     parser.add_argument('--picard_extra_args', '-p', action="store", dest="picard_extra_args", nargs='?',

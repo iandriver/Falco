@@ -56,6 +56,11 @@ do
             shift
             shift
             ;;
+        --min_trim|-m)
+            min_trim="$2"
+            shift
+            shift
+            ;;
         --additional-files|-a)
             additional_files="$2"
             shift
@@ -69,7 +74,7 @@ do
 done
 # check that we have all the input parms
 # Note that --additional-files is optional
-for var in input output region user_script ; do
+for var in input output region user_script min_trim ; do
    [ "${!var}" != "" ] || exit_msg "Missing input parameter: $var"
 done
 
@@ -85,7 +90,7 @@ fi
 
 #input is streamed - read the input
 while read f ; do
-    # preprocessing fastq files to emulate QC steps as outlined in 
+    # preprocessing fastq files to emulate QC steps as outlined in
     # http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4466750/#d35e297
     #
     # Assumptions
@@ -107,7 +112,7 @@ while read f ; do
     # check that file name ends in ".fastq.gz"
     str=".fastq.gz"
     str_len=${#str}
-    [ "${f: -$str_len}" == "$str" ] || exit_msg "Invalid input file - expecting $str file: $f" 
+    [ "${f: -$str_len}" == "$str" ] || exit_msg "Invalid input file - expecting $str file: $f"
 
     # set file id
     id=${f%.fastq.gz}
@@ -117,7 +122,7 @@ while read f ; do
     # set up some variables to store the full path names for the file(s)
     fq_1=${id}_1.fastq
     fq_2=${id}_2.fastq
-    
+
     # make a scratch directory with unique id to do the working
     # add container_id to handle case of pre-emptive execution by hadoop
     # Note that $CONTAINER_ID is a Yarn variable
@@ -139,7 +144,7 @@ while read f ; do
             fi
         done
         # disable extended globbing
-        shopt -u extglob 
+        shopt -u extglob
     fi
     cd $scratch || exit_msg "Unable to change to scratch dir: $scratch"
     # catch situation where we might have some sort of re-run & file exists
@@ -154,10 +159,10 @@ while read f ; do
     if $input_is_s3 ; then
         aws s3 cp $input$file_sep$f . --region $region
     else
-        hdfs dfs get $input$file_sep$f . 
+        hdfs dfs get $input$file_sep$f .
     fi
     [ $? -eq 0 ] || exit_msg "unable to download $f from $input"
-    
+
     # unzip & split file
     # first check if se or pe
     # assumes tabs separate lines in a record
@@ -176,7 +181,7 @@ while read f ; do
     elif [ $num_fields -ne $PE_FIELDS ] ; then
         exit_msg "malformed input file $f"
     fi
-        
+
     if $paired ; then
         # "\t" is the separator between pe file matching records
         # NOTE that the single redirection symbol ">" is used here
@@ -191,13 +196,13 @@ while read f ; do
     fi
 
     # Call user script - each file name is a separate argument to the user script
-    ./$user_script $file_names
+    ./$user_script $file_names $min_trim
     [ $? -eq 0 ] || exit_msg "Unsuccessful call to $user_script for file(s): $file_names"
 
     # need to process the files before zipping (e.g. join files &/or join lines)
     # note that the output is named the same as the original input
     if $paired ; then
-        # qc may return files of uneven length (e.g. may remove a read from one of the 
+        # qc may return files of uneven length (e.g. may remove a read from one of the
         # paired files due to quality (but leave the matching read in the other pe file
         # FNR==NR {...} only executes for first file (FNR = overall line #; NR = file line #)
         # uses associative array "a" to store record by key=sequence id
