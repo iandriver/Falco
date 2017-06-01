@@ -13,7 +13,7 @@ spark_extra_config = [("spark.memory.fraction", "0.9"),
                       ("spark.python.worker.reuse", "false"),
                       ("spark.pyspark.virtualenv.enabled", "true"),
                       ("spark.pyspark.virtualenv.type", "native"),
-                      ("spark.pyspark.virtualenv.requirements", "/home/hadoop/requirements.txt"),
+                      ("spark.pyspark.virtualenv.requirements", "/home/hadoop/venv/requirements.txt"),
                       ("spark.pyspark.virtualenv.path", "/home/hadoop/env"),
                       ("spark.pyspark.python","/home/hadoop/env/bin/python2.7")
                       ("spark.yarn.executor.memoryOverhead", "4096"),
