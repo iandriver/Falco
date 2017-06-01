@@ -2,13 +2,13 @@
 # used as a "bootstrap" script for an EMR cluster
 # installs software - in a version agnostic manner where possible
 # ASSUMPTION: only one version of each software package is available locally
-
-set -e
+set -x
 set -o pipefail
 
 sudo yum update -y
-aws s3 cp $2 /home/hadoop/
-unzip /home/hadoop/env.zip
+mkdir venv
+aws s3 cp $2 /home/hadoop/venv --recursive
+unzip /home/hadoop/venv/env.zip
 
 source /home/hadoop/env/bin/activate
 
@@ -101,9 +101,10 @@ popd > /dev/null
 
 mkdir /mnt/output
 
+deactivate
 # Install python dependencies for framework
-sudo yum install python27-Cython -y
 
+sudo python3 -m pip install boto3
 
 # Install java8
 sudo yum install java-1.8.0-openjdk.x86_64 -y
