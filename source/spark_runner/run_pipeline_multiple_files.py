@@ -296,7 +296,7 @@ def samtools_sort(sample_name, aligned_output_filepath, counter_output_dir):
 
     return sorted_file_name
 
-def count_reads_stringtie(sample_name, aligned_output_filepath, counter_output_dir):
+def count_reads_stringtie(sample_name, aligned_output_filepath, alignment_output_dir):
     aligned_file_type = aligned_output_filepath.rsplit(".")[-1]
 
     print("Running Stringtie")
@@ -306,11 +306,11 @@ def count_reads_stringtie(sample_name, aligned_output_filepath, counter_output_d
                 "{genome_ref_folder}/{annotation_file} -A {gene_abund_file}".\
         format(aligned_file_type=aligned_file_type,
                counter_extra_args=parser_result.counter_extra_args,
-               samsorted_aligned_file=aligned_output_filepath,
+               samsorted_aligned_file=alignment_output_dir+ "/"+sample_name+".sorted.bam",
                genome_ref_folder=GENOME_REFERENCES_FOLDER + "/genome_ref",
                annotation_file=parser_result.annotation_file,
-               output_file_path=counter_output_dir+ "/"+sample_name+".gff",
-               gene_abund_file=counter_output_dir+ "/"+sample_name+"_gene_abund.tab")
+               output_file_path=alignment_output_dir+ "/"+sample_name+".gff",
+               gene_abund_file=alignment_output_dir+ "/"+sample_name+"_gene_abund.tab")
     print("Command: " + stringtie_args)
     stringtie_process = Popen(shlex.split(stringtie_args), stdout=PIPE, stderr=PIPE)
     stringtie_out, stringtie_error = stringtie_process.communicate()
@@ -445,6 +445,9 @@ def alignment_count_step(keyval):
         counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
     elif parser_result.counter.lower() == "htseq":
         counter_output, counter_qc_output = count_reads_htseq(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
+    elif parser_result.counter.lower() =="stringtie":
+        sorted_samfile = count_reads_stringtie(sample_name, aligned_output_filepath, alignment_output_dir)
+        stringtie_gff_name, stringtie_abund_name = count_reads_stringtie(sample_name, aligned_output_filepath, alignment_output_dir)
     else:
         print("Counter specified is not yet supported. Defaulting to featureCount")
         counter_output, counter_qc_output = count_reads_featurecount(sample_name, aligned_output_filepath, paired_reads,alignment_output_dir)
