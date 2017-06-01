@@ -43,7 +43,7 @@ cd $data_dir
 # use as many processors as is available
 # ignore stderr (file download progress)
 echo "STARTING: file download"
-xargs -P0 -I fname wget fname < ../$file_listing 2>/dev/null
+xargs -I fname wget fname < ../$file_listing 2>/dev/null
 # upload to S3 - need to have S3 URI
 echo "STARTING: sync to AWS S3"
 aws s3 sync . $s3_uri
